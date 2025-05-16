@@ -39,7 +39,7 @@ for p in portfolios:
 df = pd.DataFrame(all_predictions)
 df.to_csv("stock_predictions_by_user.csv", index=False)
 print("✅ Saved to 'stock_predictions_by_user.csv'")
-
+df.columns = df.columns.str.strip()  # Normalize columns
 
 import streamlit as st
 import pandas as pd
@@ -168,7 +168,11 @@ if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
 # df = load_csv("stock_predictions_by_user.csv")
-unique_portfolios = df["portfolio_name"].dropna().unique().tolist()
+if not df.empty and "portfolio_name" in df.columns:
+    unique_portfolios = df["portfolio_name"].dropna().unique().tolist()
+else:
+    st.error("⚠️ 'portfolio_name' is missing or dataframe is empty.")
+    st.stop()
 
 st.markdown(
     "<h4 style='color:#00ffcc; margin-top: 30px;'>📁 Select a Portfolio</h4>",
