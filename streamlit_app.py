@@ -306,49 +306,161 @@
 
 #     st.session_state.chat_history.append({"role": "assistant", "content": response})
 #     st.rerun()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import requests
+import pandas as pd
+
+# --- Config ---
+BASE_URL = "http://10.10.0.106:8001"
+USER_ID = "f772dc7d-7b53-4bec-9929-7f9774be00ff"
+PORTFOLIO_API = f"{BASE_URL}/user_portfolio/list/get_by_user_id/{USER_ID}"
+STOCK_PREDICTIONS_API = f"{BASE_URL}/stock_predictions/list/get_by_portfolio_id"
+
+# --- Timeout-safe request ---
+def safe_get(url, timeout=10):
+    try:
+        response = requests.get(url, timeout=timeout)
+        if response.ok:
+            return response.json()
+    except Exception as e:
+        print(f"Failed: {url}\n{e}")
+    return []
+
+# --- Fetch portfolios ---
+portfolios = safe_get(PORTFOLIO_API)
+
+# --- Accumulate predictions ---
+all_predictions = []
+for p in portfolios:
+    portfolio_id = p["portfolio"]["portfolio_id"]
+    portfolio_name = p["portfolio"]["name"]
+    predictions_url = f"{STOCK_PREDICTIONS_API}/{portfolio_id}"
+    predictions = safe_get(predictions_url)
+    for entry in predictions:
+        entry["portfolio_id"] = portfolio_id
+        entry["portfolio_name"] = portfolio_name
+    all_predictions.extend(predictions)
+
+# --- Store in CSV ---
+df = pd.DataFrame(all_predictions)
+# df.to_csv("stock_predictions_by_user.csv", index=False)
+# print("✅ Saved to 'stock_predictions_by_user.csv'")
+
+# import pandas as pd
+# import os
+# from dotenv import load_dotenv
+# from groq import Groq
+
+# # Load environment variables
+# load_dotenv()
+# api_key = os.getenv("GROQ_API_KEY")
+# client = Groq(api_key=api_key)
+
+# def load_csv(filepath: str) -> pd.DataFrame:
+#     return pd.read_csv(filepath)
+
+# def summarize_portfolio(df: pd.DataFrame):
+#     df["total_purchase"] = df["purchase_price"] * df["quantity"]
+#     df["total_current"] = df["current_price"] * df["quantity"]
+
+#     total_purchase = df["total_purchase"].sum()
+#     print("pur",total_purchase)
+#     total_current = df["total_current"].sum()
+#     print("cur",total_current)
+#     return round(total_purchase, 2), round(total_current, 2)
+
+# def create_prompt(df: pd.DataFrame, portfolio_name: str, user_query: str) -> str:
+#     total_purchase, total_current = summarize_portfolio(df)
+    
+#     # Include all relevant columns
+#     preview = df.to_csv(index=False)
+#     print("preview",preview)
+#     return f"""
+# You are a professional financial analyst. You are given all stock-level data for the portfolio named "{portfolio_name}". Use this complete information to answer the user's question intelligently.
+
+# Here is the full portfolio data:
+# {preview}
+
+# Portfolio Summary:
+# - Total Purchase Value (quantity × purchase_price): ${total_purchase}
+# - Total Current Value (quantity × current_price): ${total_current}
+
+# Now answer the question below clearly and accurately based ONLY on the data above:
+
+# User's Question:
+# {user_query}
+
+# Respond in a structured and factual manner.
+
+# """
+
+
+# def query_csv(csv_path: str, target_portfolio_name: str, user_query: str):
+
+#     df = load_csv(csv_path)
+
+#     if "portfolio_name" not in df.columns:
+#         raise ValueError("CSV must contain a 'portfolio_name' column.")
+
+#     filtered_df = df[df["portfolio_name"] == target_portfolio_name]
+
+#     if filtered_df.empty:
+#         return f"⚠️ No data found for portfolio name '{target_portfolio_name}'."
+
+#     prompt = create_prompt(filtered_df, target_portfolio_name, user_query)
+
+
+#     response = client.chat.completions.create(
+#         model="llama-3.3-70b-versatile",
+#         messages=[{"role": "user", "content": prompt}],
+#         temperature=0,
+#     )
+    
+#     return response.choices[0].message.content.strip()
+
+# # Example usage
+# if __name__ == "__main__":
+    
+#     portfolio_name = "portfolio_160707"
+
+#     # You can change this to any natural language question
+#     question = "list the current price for all stocks"
+
+#     result = query_csv("stock_predictions_by_user.csv", portfolio_name, question)
+#     print("🔍 Answer:", result)
 import streamlit as st
 import pandas as pd
 import os
 from dotenv import load_dotenv
 from groq import Groq
-import requests
 
 # Load environment variables
 load_dotenv()
 api_key = os.getenv("GROQ_API_KEY")
 client = Groq(api_key=api_key)
 
-@st.cache_data
-def fetch_predictions() -> pd.DataFrame:
-    BASE_URL = "http://10.10.0.106:8001"
-    USER_ID = "f772dc7d-7b53-4bec-9929-7f9774be00ff"
-    PORTFOLIO_API = f"{BASE_URL}/user_portfolio/list/get_by_user_id/{USER_ID}"
-    STOCK_PREDICTIONS_API = f"{BASE_URL}/stock_predictions/list/get_by_portfolio_id"
-
-    def safe_get(url, timeout=10):
-        try:
-            response = requests.get(url, timeout=timeout)
-            if response.ok:
-                return response.json()
-        except Exception as e:
-            st.error(f"\u274c Failed to connect: {url}\n{e}")
-            st.stop()
-        return []
-
-    portfolios = safe_get(PORTFOLIO_API)
-
-    all_predictions = []
-    for p in portfolios:
-        portfolio_id = p["portfolio"]["portfolio_id"]
-        portfolio_name = p["portfolio"]["name"]
-        predictions_url = f"{STOCK_PREDICTIONS_API}/{portfolio_id}"
-        predictions = safe_get(predictions_url)
-        for entry in predictions:
-            entry["portfolio_id"] = portfolio_id
-            entry["portfolio_name"] = portfolio_name
-        all_predictions.extend(predictions)
-
-    return pd.DataFrame(all_predictions)
+# @st.cache_data
+# def load_csv(filepath: str) -> pd.DataFrame:
+#     return pd.read_csv(filepath)
 
 def summarize_portfolio(df: pd.DataFrame):
     df["total_purchase"] = df["purchase_price"] * df["quantity"]
@@ -456,11 +568,12 @@ body, .stApp {
 </div>
 """, unsafe_allow_html=True)
 
+
 # Session state
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-df = fetch_predictions()
+# df = load_csv("stock_predictions_by_user.csv")
 unique_portfolios = df["portfolio_name"].dropna().unique().tolist()
 
 st.markdown(
@@ -469,7 +582,11 @@ st.markdown(
 )
 selected_portfolio = st.selectbox("", options=unique_portfolios)
 
-# Filter portfolio-specific data
+
+# # Filter portfolio-specific data
+# filtered_df = df[df["portfolio_name"] == selected_portfolio]
+unique_portfolios = df["portfolio_name"].dropna().unique().tolist()
+selected_portfolio = st.selectbox("", options=unique_portfolios)
 filtered_df = df[df["portfolio_name"] == selected_portfolio]
 
 def render_chat_message(role: str, content: str):
@@ -495,6 +612,7 @@ def render_chat_message(role: str, content: str):
             """,
             unsafe_allow_html=True
         )
+
 
 # Render message history
 for msg in st.session_state.chat_history:
