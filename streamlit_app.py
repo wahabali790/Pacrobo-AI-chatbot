@@ -169,7 +169,7 @@ if "chat_history" not in st.session_state:
 
 # df = load_csv("stock_predictions_by_user.csv")
 if not df.empty and "portfolio_name" in df.columns:
-    unique_portfolios = df["portfolio_name"].dropna().unique().tolist()
+    unique_portfolios = df[["portfolio_name"]].dropna().unique().tolist()
 else:
     st.error("⚠️ 'portfolio_name' is missing or dataframe is empty.")
     st.stop()
