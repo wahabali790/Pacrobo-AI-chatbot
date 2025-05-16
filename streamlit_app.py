@@ -37,9 +37,9 @@ for p in portfolios:
 
 # --- Store in CSV ---
 df = pd.DataFrame(all_predictions)
-df.to_csv("stock_predictions_by_user.csv", index=False)
-print("✅ Saved to 'stock_predictions_by_user.csv'")
-df.columns = df.columns.str.strip()  # Normalize columns
+# df.to_csv("stock_predictions_by_user.csv", index=False)
+# print("✅ Saved to 'stock_predictions_by_user.csv'")
+# df.columns = df.columns.str.strip()  # Normalize columns
 
 import streamlit as st
 import pandas as pd
