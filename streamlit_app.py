@@ -5,44 +5,44 @@
 
 
 
-# import requests
-# import pandas as pd
+import requests
+import pandas as pd
 
-# # --- Config ---
-# BASE_URL = "http://10.10.0.106:8001"
-# USER_ID = "f772dc7d-7b53-4bec-9929-7f9774be00ff"
-# PORTFOLIO_API = f"{BASE_URL}/user_portfolio/list/get_by_user_id/{USER_ID}"
-# STOCK_PREDICTIONS_API = f"{BASE_URL}/stock_predictions/list/get_by_portfolio_id"
+# --- Config ---
+BASE_URL = "http://10.10.0.106:8001"
+USER_ID = "f772dc7d-7b53-4bec-9929-7f9774be00ff"
+PORTFOLIO_API = f"{BASE_URL}/user_portfolio/list/get_by_user_id/{USER_ID}"
+STOCK_PREDICTIONS_API = f"{BASE_URL}/stock_predictions/list/get_by_portfolio_id"
 
-# # --- Timeout-safe request ---
-# def safe_get(url, timeout=10):
-#     try:
-#         response = requests.get(url, timeout=timeout)
-#         if response.ok:
-#             return response.json()
-#     except Exception as e:
-#         print(f"Failed: {url}\n{e}")
-#     return []
+# --- Timeout-safe request ---
+def safe_get(url, timeout=10):
+    try:
+        response = requests.get(url, timeout=timeout)
+        if response.ok:
+            return response.json()
+    except Exception as e:
+        print(f"Failed: {url}\n{e}")
+    return []
 
-# # --- Fetch portfolios ---
-# portfolios = safe_get(PORTFOLIO_API)
+# --- Fetch portfolios ---
+portfolios = safe_get(PORTFOLIO_API)
 
-# # --- Accumulate predictions ---
-# all_predictions = []
-# for p in portfolios:
-#     portfolio_id = p["portfolio"]["portfolio_id"]
-#     portfolio_name = p["portfolio"]["name"]
-#     predictions_url = f"{STOCK_PREDICTIONS_API}/{portfolio_id}"
-#     predictions = safe_get(predictions_url)
-#     for entry in predictions:
-#         entry["portfolio_id"] = portfolio_id
-#         entry["portfolio_name"] = portfolio_name
-#     all_predictions.extend(predictions)
+# --- Accumulate predictions ---
+all_predictions = []
+for p in portfolios:
+    portfolio_id = p["portfolio"]["portfolio_id"]
+    portfolio_name = p["portfolio"]["name"]
+    predictions_url = f"{STOCK_PREDICTIONS_API}/{portfolio_id}"
+    predictions = safe_get(predictions_url)
+    for entry in predictions:
+        entry["portfolio_id"] = portfolio_id
+        entry["portfolio_name"] = portfolio_name
+    all_predictions.extend(predictions)
 
-# # --- Store in CSV ---
-# df = pd.DataFrame(all_predictions)
-# df.to_csv("stock_predictions_by_user.csv", index=False)
-# print("✅ Saved to 'stock_predictions_by_user.csv'")
+# --- Store in CSV ---
+df = pd.DataFrame(all_predictions)
+df.to_csv("stock_predictions_by_user.csv", index=False)
+print("✅ Saved to 'stock_predictions_by_user.csv'")
 
 # import pandas as pd
 # import os
