@@ -24,8 +24,7 @@ def safe_get(url, timeout=10):
         print(f"Failed: {url}\n{e}")
     return []
 
-# --- Fetch portfolios ---
-portfolios = safe_get(PORTFOLIO_API)
+
 
 # --- Accumulate predictions ---
 # all_predictions = []
