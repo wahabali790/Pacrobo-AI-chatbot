@@ -57,9 +57,16 @@ def get_portfolio_predictions_df():
         all_predictions.extend(predictions)
 
     df = pd.DataFrame(all_predictions)
-    df.columns = df.columns.str.strip()
-    df["portfolio_name"] = df["portfolio_name"].astype(str).replace("nan", pd.NA)
+
+    # ✅ Fix for AttributeError
+    df.columns = df.columns.astype(str).str.strip()
+
+    # ✅ Optional defensive casting for safety
+    if "portfolio_name" in df.columns:
+        df["portfolio_name"] = df["portfolio_name"].astype(str).replace("nan", pd.NA)
+
     return df
+
 
 # df.to_csv("stock_predictions_by_user.csv", index=False)
 # print("✅ Saved to 'stock_predictions_by_user.csv'")
