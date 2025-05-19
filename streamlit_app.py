@@ -5,14 +5,24 @@ import requests
 from dotenv import load_dotenv
 from groq import Groq
 
-# Load environment variables
+# Load environment variables from .env file
 load_dotenv()
-api_key = os.getenv("GROQ_API_KEY")
+
+# Function to get configuration (tries secrets first, then env vars)
+def get_config(key, default=None):
+    # Try to get from Streamlit secrets (for deployment)
+    if hasattr(st, 'secrets') and key in st.secrets:
+        return st.secrets[key]
+    # Fall back to environment variables (for local development with .env)
+    return os.getenv(key, default)
+
+# Get API configuration
+api_key = get_config("GROQ_API_KEY")
 client = Groq(api_key=api_key)
 
 # --- Config ---
-BASE_URL = st.secrets.get("BASE_URL", "http://10.10.0.106:8001")  # Use secrets for deployment
-USER_ID = st.secrets.get("USER_ID", "f772dc7d-7b53-4bec-9929-7f9774be00ff")
+BASE_URL = get_config("BASE_URL", "http://10.10.0.106:8001")
+USER_ID = get_config("USER_ID", "f772dc7d-7b53-4bec-9929-7f9774be00ff")
 PORTFOLIO_API = f"{BASE_URL}/user_portfolio/list/get_by_user_id/{USER_ID}"
 STOCK_PREDICTIONS_API = f"{BASE_URL}/stock_predictions/list/get_by_portfolio_id"
 
