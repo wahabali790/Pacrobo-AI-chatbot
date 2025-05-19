@@ -8,6 +8,11 @@ import pandas as pd
 import os
 from dotenv import load_dotenv
 from groq import Groq
+
+# Load environment variables
+load_dotenv()
+api_key = os.getenv("GROQ_API_KEY")
+client = Groq(api_key=api_key)
 # --- Config ---
 BASE_URL = "http://10.10.0.106:8001"
 USER_ID = "f772dc7d-7b53-4bec-9929-7f9774be00ff"
@@ -43,28 +48,42 @@ def safe_get(url, timeout=10):
 @st.cache_data(show_spinner="Fetching portfolio and prediction data...")
 def get_portfolio_predictions_df():
     all_predictions = []
+
+    # ✅ Move this here INSIDE the function
     portfolios = safe_get(PORTFOLIO_API)
 
+    if not portfolios:
+        st.warning("No portfolios found for the user.")
+        return pd.DataFrame(columns=["portfolio_name"])
+
     for p in portfolios:
-        portfolio_id = p["portfolio"]["portfolio_id"]
-        portfolio_name = p["portfolio"]["name"]
-        predictions_url = f"{STOCK_PREDICTIONS_API}/{portfolio_id}"
-        predictions = safe_get(predictions_url)
-        for entry in predictions:
-            entry["portfolio_id"] = portfolio_id
-            entry["portfolio_name"] = portfolio_name
-        all_predictions.extend(predictions)
+        try:
+            portfolio_id = p["portfolio"]["portfolio_id"]
+            portfolio_name = p["portfolio"]["name"]
+            predictions_url = f"{STOCK_PREDICTIONS_API}/{portfolio_id}"
+            predictions = safe_get(predictions_url)
+
+            for entry in predictions:
+                entry["portfolio_id"] = portfolio_id
+                entry["portfolio_name"] = portfolio_name
+
+            all_predictions.extend(predictions)
+        except Exception as e:
+            print("❌ Error parsing portfolio:", e)
+            continue
 
     df = pd.DataFrame(all_predictions)
 
-    # ✅ Fix for AttributeError
+    if df.empty:
+        return pd.DataFrame(columns=["portfolio_name"])  # to prevent crashes
+
     df.columns = df.columns.astype(str).str.strip()
 
-    # ✅ Optional defensive casting for safety
     if "portfolio_name" in df.columns:
         df["portfolio_name"] = df["portfolio_name"].astype(str).replace("nan", pd.NA)
 
     return df
+
 
 
 # df.to_csv("stock_predictions_by_user.csv", index=False)
@@ -73,10 +92,7 @@ def get_portfolio_predictions_df():
 
 
 
-# Load environment variables
-load_dotenv()
-api_key = os.getenv("GROQ_API_KEY")
-client = Groq(api_key=api_key)
+
 
 # @st.cache_data
 # def load_csv(filepath: str) -> pd.DataFrame:
@@ -201,6 +217,7 @@ if not df.empty and "portfolio_name" in df.columns:
 else:
     st.error("⚠️ 'portfolio_name' is missing or dataframe is empty.")
     st.stop()
+
 
 st.markdown(
     "<h4 style='color:#00ffcc; margin-top: 30px;'>📁 Select a Portfolio</h4>",
